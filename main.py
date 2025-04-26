@@ -24,7 +24,7 @@ class Upbit:
         self.sell_order_list = []
 
         # BOOLEAN
-        self.ORDER_LOCK = True
+        self.ORDER_LOCK = False
         self.test = False
 
         self.min_price = 1
