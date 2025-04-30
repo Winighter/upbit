@@ -62,7 +62,7 @@ class Upbit:
 
     def get_balance(self):
 
-        position = 95 # 10 ~ 20 전체자산 기준 투자할 금액 비율 (%)
+        position = 97 # 10 ~ 20 전체자산 기준 투자할 금액 비율 (%)
         risk = 5 # [0.25-1] [0.5-1.5] 투자금액 기준 손절할 금액 비율 (%)
 
         balance = self.exchange.fetch_balance()
