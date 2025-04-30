@@ -22,7 +22,7 @@ class Upbit:
         self.sell_order_list = []
 
         # BOOLEAN
-        self._ORDER = False
+        self._ORDER = True
 
         # CUSTOMIZE
         self.ORDER_LOCK = False
