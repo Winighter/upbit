@@ -50,14 +50,14 @@ class Indicator():
                     f = _src[len(_src)-ii-1]
                     first.append(f)
                 fEma = sum(first)/_length
-                fEma = round(fEma, 6)
+                fEma = round(fEma, 7)
                 sum_list.append(fEma)
                 ema_list.append(fEma)
 
             if i < len(_src)-_length:
 
                 ema = alpha * _src[i] + (1 - alpha) * sum_list[len(sum_list)-1]
-                ema = round(ema, 6)
+                ema = round(ema, 7)
                 sum_list.append(ema)
                 ema_list.insert(0, ema)
 
