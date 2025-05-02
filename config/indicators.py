@@ -30,7 +30,17 @@ class Indicator():
         return result
 
     # Exponential Moving Average
-    def ema(_src:list, _length:int, _array:int = 0):
+    def ema(_src:list, _length:int, _array:int = 0, _price_length:int = 0):
+
+        float_len = _price_length
+
+        for i in _src:
+
+            i = str(i)
+            splt = i.split(".")
+            slen = len(splt[1])
+            if float_len <= slen:
+                float_len = slen
 
         alpha = 2 / (_length + 1)
 
@@ -50,14 +60,14 @@ class Indicator():
                     f = _src[len(_src)-ii-1]
                     first.append(f)
                 fEma = sum(first)/_length
-                fEma = round(fEma, 7)
+                fEma = round(fEma, float_len)
                 sum_list.append(fEma)
                 ema_list.append(fEma)
 
             if i < len(_src)-_length:
 
                 ema = alpha * _src[i] + (1 - alpha) * sum_list[len(sum_list)-1]
-                ema = round(ema, 7)
+                ema = round(ema, float_len)
                 sum_list.append(ema)
                 ema_list.insert(0, ema)
 
