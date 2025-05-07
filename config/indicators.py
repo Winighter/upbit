@@ -437,7 +437,7 @@ class Indicator():
         return f
 
     # Nadaraya-Watson Envelope [LuxAlgo]
-    def nwe(_src, _bandWidth:int = 8, _mult:int = 3):
+    def nwe(_src, _mult:int = 3):
 
         y2 = 0.
         nwe_list = []
@@ -463,22 +463,21 @@ class Indicator():
 
         sae = sae / length * _mult
 
+        result = None
+
         for i in range(length):
 
-            if i == 0:
+            if _src[i] > nwe_list[i] + sae and _src[i+1] < nwe_list[i] + sae:
+                # print(i, "SHORT", _src[i], _src[i+1])
+                if i == 1:
+                    result = "SHORT"
 
-                if _src[i+1] > nwe_list[i+1] + sae and _src[i+1+1] < nwe_list[i+1] + sae:
+            if _src[i] < nwe_list[i] - sae and _src[i+1] > nwe_list[i] - sae:
+                # print(i, "LONG", _src[i], _src[i+1])
+                if i == 1:
+                    result = "LONG"
 
-                    return "SHORT"
+            if i == length - 2:
+                break
 
-                elif _src[i+1] < nwe_list[i+1] - sae and _src[i+1+1] > nwe_list[i+1] - sae:
-
-                    return "LONG"
-                
-                else:
-                    return
-            break
-
-        
-
-
+        return result
