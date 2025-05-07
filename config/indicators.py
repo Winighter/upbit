@@ -358,6 +358,127 @@ class Indicator():
                 sigma_list.append(sigma)
         return sigma_list
         
+    # Pivot Points High Low
+    def pivots_hl(_high, _low, _close, _leftBars: int = 20, _rightBars: int = 20):
+        '''
+        [tradingview] Pivot Points High Low ~ Om Borda by omborda2002
 
-    
+        tradingview default value : _leftBars = 10, _rightBars = 10
+
+        !!! Warning !!!
+        leftBars 값은 상관없지만 RightBars의 경우 값이 증가할수록
+        매매 타이밍이 매우 느려지므로 매매에 사용하기엔 부적합하다.
+        그래서 0으로 설정하자니 오류 신호만 증가하기 때문에
+        어디까지나 참고용
+        '''
+        pivot_list = []
+
+        for i in range(len(_high)):
+
+            index = len(_high) - i - 1
+
+            if i >= _leftBars:
+
+                low_list = []
+                high_list = []
+                center_low = 0.0
+                center_high = 0.0
+                
+                for ii in range(_leftBars + _rightBars + 1):
+
+                    iindex = index+ii-_leftBars
+
+                    if ii == _rightBars:
+                        center_low = _low[iindex]
+                        center_high = _high[iindex]
+
+                    low_list.append(_low[iindex])
+                    high_list.append(_high[iindex])
+
+                minlow = min(low_list)
+                maxhigh = max(high_list)
+
+                if maxhigh == center_high:
+                    pivot_list.insert(0, [maxhigh, 0])
+
+                elif minlow == center_low:
+                    pivot_list.insert(0, [0, minlow])
+
+                else:
+                    pivot_list.insert(0, [0, 0])
+
+                if index == _leftBars:
+                    break
+
+        for i in range(len(_high)):
+
+            index = len(_high) - i - 1
+
+            if i > _leftBars:
+                iindex = index+_leftBars
+
+                if index <= len(pivot_list) - 1:
+
+                    sp = sum(pivot_list[index])
+
+                    if sp != 0:
+                        # SHort Signal
+                        if (_high[iindex] >= _high[iindex + 1]) and (_high[iindex] >= _high[iindex - 1]) and (_low[iindex] >= _close[iindex - 1]):
+                            print("[High]",iindex,_high[iindex],_low[iindex],_close[iindex],pivot_list[index])
+
+                        # LongSignal
+                        if (_low[iindex] < _low[iindex + 1]) and (_low[iindex] <= _low[iindex - 1]) and (_high[iindex] <= _close[iindex - 1]):
+                            print("[Low]",iindex,_high[iindex],_low[iindex],_close[iindex],pivot_list[index])
+
+    def gauss(_x, _h:int = 8):
+
+        f = math.exp(-(pow(_x, 2)/(_h * _h * 2)))
+        f = round(f, 6)
+        return f
+
+    # Nadaraya-Watson Envelope [LuxAlgo]
+    def nwe(_src, _bandWidth:int = 8, _mult:int = 3):
+
+        y2 = 0.
+        nwe_list = []
+
+        length = min(499, len(_src))
+
+        sae = 0.
+
+        for i in range(length):
+
+            sum = 0.
+            sumw = 0.
+
+            for j in range(length):
+
+                w = Indicator.gauss(i -j)
+                sum += _src[j] * w
+                sumw += w
+            
+            y2 = sum / sumw
+            sae += abs(_src[i] - y2)
+            nwe_list.append(y2)
+
+        sae = sae / length * _mult
+
+        for i in range(length):
+
+            if i == 0:
+
+                if _src[i+1] > nwe_list[i+1] + sae and _src[i+1+1] < nwe_list[i+1] + sae:
+
+                    return "SHORT"
+
+                elif _src[i+1] < nwe_list[i+1] - sae and _src[i+1+1] > nwe_list[i+1] - sae:
+
+                    return "LONG"
+                
+                else:
+                    return
+            break
+
+        
+
 
