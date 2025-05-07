@@ -23,7 +23,7 @@ class Upbit:
         self.sell_order_list = []
 
         # CUSTOMIZE
-        self.ORDER_LOCK = False
+        self.ORDER_LOCK = True
 
         self.min_time = 10
         self.symbol = 'KRW-BONK'
@@ -151,8 +151,8 @@ class Upbit:
     def min_candle_chart(self):
 
         _close = []
-        _high = []
-        _low = []
+        # _high = []
+        # _low = []
 
         url = f"https://api.upbit.com/v1/candles/minutes/{self.min_time}"
         querystring = {"market": self.symbol,"count": "200", "to": ""}
@@ -163,13 +163,13 @@ class Upbit:
 
             for ii in data:
 
-                high = float(ii['high_price'])
-                low = float(ii['low_price'])
+                # high = float(ii['high_price'])
+                # low = float(ii['low_price'])
                 close = float(ii['trade_price'])
                 last_time = str((ii['candle_date_time_kst']))
 
-                _high.append(high)
-                _low.append(low)
+                # _high.append(high)
+                # _low.append(low)
                 _close.append(close)
 
             querystring = {"market": self.symbol,"count": "200", "to": f"{last_time}+09:00"}
@@ -182,13 +182,13 @@ class Upbit:
         # BUY
         if nwe_condition == 'LONG' and self.symbol not in self.balance_dict.keys():
 
-            Message(f'[UPBIT] new_long_condition')
+            Message(f'[UPBIT] Entry Position')
             self.order("BUY", self.symbol, self.deposit)
 
         # SELL
         if nwe_condition == 'SHORT' and self.symbol in self.balance_dict.keys():
 
-            Message(f"[UPBIT] new_long_end")
+            Message(f"[UPBIT] Close Position")
             balance = self.balance_dict[self.symbol]['balance']
             self.order("SELL", self.symbol, balance)
 
