@@ -151,6 +151,8 @@ class Upbit:
     def min_candle_chart(self):
 
         _close = []
+        _high = []
+        _low = []
 
         url = f"https://api.upbit.com/v1/candles/minutes/{self.min_time}"
         querystring = {"market": self.symbol,"count": "200", "to": ""}
@@ -161,37 +163,38 @@ class Upbit:
 
             for ii in data:
 
+                high = float(ii['high_price'])
+                low = float(ii['low_price'])
                 close = float(ii['trade_price'])
                 last_time = str((ii['candle_date_time_kst']))
 
+                _high.append(high)
+                _low.append(low)
                 _close.append(close)
 
             querystring = {"market": self.symbol,"count": "200", "to": f"{last_time}+09:00"}
 
-        _ema50 = Indicator.ema(_close, 50, None, 7)
-        _ema200 = Indicator.ema(_close, 200, None, 7)
+        ### INDICATOR DATA ###
+        nwe_condition = Indicator.nwe(_close)
 
-        long_condition = _ema50[2] <= _ema200[2] and _ema50[1] > _ema200[1]
-        long_end = _ema50[1] < _ema200[1]
+        ### Add Condition ###
 
         # BUY
-        if long_condition == True and self.symbol not in self.balance_dict.keys():
+        if nwe_condition == 'LONG' and self.symbol not in self.balance_dict.keys():
 
-            Message(f'[UPBIT] long_condition')
+            Message(f'[UPBIT] new_long_condition')
             self.order("BUY", self.symbol, self.deposit)
 
         # SELL
-        if long_end == True and self.symbol in self.balance_dict.keys():
+        if nwe_condition == 'SHORT' and self.symbol in self.balance_dict.keys():
 
-            Message(f"[UPBIT] long_end")
+            Message(f"[UPBIT] new_long_end")
             balance = self.balance_dict[self.symbol]['balance']
             self.order("SELL", self.symbol, balance)
 
         threading.Timer(1, self.min_candle_chart).start()
 
     def on_ws_private_data(self, data):
-
-        # print(data)
 
         if data["type"] == "myOrder":
 
