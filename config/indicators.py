@@ -481,3 +481,80 @@ class Indicator():
                 break
 
         return result
+
+    def swing_hl(_high, _low, _len):
+
+        os = 0
+        cnt = 0
+        os_list = []
+        upper_list = []
+        lower_list = []
+
+        for i in range(len(_high)):
+
+            if i >= _len -1:
+
+                min_list = []
+                max_list = []
+                for ii in range(_len):
+
+                    iindex = i - ii
+                    min_list.append(_low[iindex])
+                    max_list.append(_high[iindex])
+
+                lowest = min(min_list)
+                highest = max(max_list)
+                lower_list.append(lowest)
+                upper_list.append(highest)
+
+        for i in range(len(upper_list)):
+            cnt += 1
+
+            index = len(upper_list) - i - 1
+
+            upper = upper_list[index]
+            lower = lower_list[index]
+
+            if i >= 1:
+
+                highl = _high[index+_len]
+                lowl = _low[index+_len]
+
+                if highl > upper:
+                    os = 0
+
+                elif lowl < lower:
+                    os = 1
+
+                elif os_list != []:
+                    os = os_list[0]
+
+                else:
+                    pass
+
+                os_list.insert(0, os)
+
+            if os == 0 and len(os_list) > 1:
+                if os_list[1] != 0:
+                    top = highl
+            else:
+                top = None
+
+            if os == 1 and len(os_list) > 1:
+                if os_list[1] != 1:
+                    btm = lowl
+            else:
+                btm = None
+
+        return top, btm
+
+    def test(_src):
+        pass
+
+
+    def test(_src):
+        pass
+
+
+    def test(_src):
+        pass
