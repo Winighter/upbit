@@ -23,7 +23,7 @@ class Upbit:
         self.sell_order_list = []
 
         # CUSTOMIZE
-        self.ORDER_LOCK = True
+        self.ORDER_LOCK = False
 
         self.min_time = 10
         self.symbol = 'KRW-BONK'
