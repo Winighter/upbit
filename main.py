@@ -25,7 +25,8 @@ class Upbit:
         # CUSTOMIZE
         self.ORDER_LOCK = False
 
-        self.min_time = 10
+        self.min_time = 5
+        self.STOP_LOSS = 0.0
         self.symbol = 'KRW-BONK'
 
         # RUN
@@ -41,20 +42,6 @@ class Upbit:
             data = ws_all.get()
             self.on_ws_private_data(data)
         ws_all.terminate()
-
-    def get_hoka(self, _symbol):
-
-        url = "https://api.upbit.com/v1/orderbook"
-        querystring = {"markets":_symbol,"level":"0"}
-        response = requests.request("GET", url, params=querystring)
-        data = response.json()
-
-        for i in data:
-            for h in i["orderbook_units"]:
-                bid_price = float(h["bid_price"])
-                break
-
-        return bid_price
 
     def get_balance(self):
 
@@ -141,20 +128,20 @@ class Upbit:
         if self.ORDER_LOCK == False:
 
             if _side == "BUY":
-                self.exchange.create_market_buy_order_with_cost(_symbol, _amount)
                 self.buy_order_list.append(_symbol)
+                self.exchange.create_market_buy_order_with_cost(_symbol, _amount)
 
-            else:
-                self.exchange.create_market_sell_order(_symbol, _amount)
+            if _side == "SELL":
                 self.sell_order_list.append(_symbol)
+                self.exchange.create_market_sell_order(_symbol, _amount)
 
     def min_candle_chart(self):
 
         _close = []
-        # _high = []
-        # _low = []
+        _high = []
+        _low = []
 
-        url = f"https://api.upbit.com/v1/candles/minutes/{self.min_time}"
+        url = f"https://api.upbit.com/v1/candles/minutes/{self.min_time}" # 1, 3, 5, 10, 15, 30, 60, 240
         querystring = {"market": self.symbol,"count": "200", "to": ""}
 
         for i in range(6):
@@ -163,30 +150,33 @@ class Upbit:
 
             for ii in data:
 
-                # high = float(ii['high_price'])
-                # low = float(ii['low_price'])
+                high = float(ii['high_price'])
+                low = float(ii['low_price'])
                 close = float(ii['trade_price'])
                 last_time = str((ii['candle_date_time_kst']))
 
-                # _high.append(high)
-                # _low.append(low)
+                _high.append(high)
+                _low.append(low)
                 _close.append(close)
 
             querystring = {"market": self.symbol,"count": "200", "to": f"{last_time}+09:00"}
 
         ### INDICATOR DATA ###
-        nwe_condition = Indicator.nwe(_close)
+        _ema_short = Indicator.ema(_close, 5, None, 6)
+        _ema_long = Indicator.ema(_close, 8, None, 6)
 
         ### Add Condition ###
+        long = _ema_long[2] >= _ema_short[2] and _ema_long[1] < _ema_short[1]
+        short = _ema_long[2] <= _ema_short[2] and _ema_long[1] > _ema_short[1]
 
         # BUY
-        if nwe_condition == 'LONG' and self.symbol not in self.balance_dict.keys():
+        if self.symbol not in self.balance_dict.keys() and long:
 
             Message(f'[UPBIT] Entry Position')
             self.order("BUY", self.symbol, self.deposit)
 
         # SELL
-        if nwe_condition == 'SHORT' and self.symbol in self.balance_dict.keys():
+        if self.symbol in self.balance_dict.keys() and short:
 
             Message(f"[UPBIT] Close Position")
             balance = self.balance_dict[self.symbol]['balance']
