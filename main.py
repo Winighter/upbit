@@ -25,7 +25,7 @@ class Upbit:
         # CUSTOMIZE
         self.ORDER_LOCK = False
 
-        self.min_time = 5
+        self.min_time = 60
         self.STOP_LOSS = 0.0
         self.symbol = 'KRW-BONK'
 
@@ -162,8 +162,8 @@ class Upbit:
             querystring = {"market": self.symbol,"count": "200", "to": f"{last_time}+09:00"}
 
         ### INDICATOR DATA ###
-        _ema_short = Indicator.ema(_close, 5, None, 6)
-        _ema_long = Indicator.ema(_close, 8, None, 6)
+        _ema_short = Indicator.ema(_close, 8, None, 6)
+        _ema_long = Indicator.ema(_close, 24, None, 6)
 
         ### Add Condition ###
         long = _ema_long[2] >= _ema_short[2] and _ema_long[1] < _ema_short[1]
