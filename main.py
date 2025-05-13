@@ -46,7 +46,7 @@ class Upbit:
     def get_balance(self):
 
         position = 90 # 10 ~ 20 전체자산 기준 투자할 금액 비율 (%)
-        risk = 5 # [0.25-1] [0.5-1.5] 투자금액 기준 손절할 금액 비율 (%)
+        risk = 1 # [0.25-1] [0.5-1.5] 투자금액 기준 손절할 금액 비율 (%)
 
         balance = self.exchange.fetch_balance()
 
@@ -57,17 +57,19 @@ class Upbit:
             locked = float(i["locked"])
             balance = float(i["balance"])
             symbol = f"{i["unit_currency"]}-{i["currency"]}"
+            avg_buy_price = i['avg_buy_price']
 
             if symbol == "KRW-KRW":
                 balance = math.trunc(balance)
                 self.deposit = math.trunc(balance*(position/100))
-                self.risk = math.trunc(balance*(risk/100))*-1
+                self.risk = math.trunc(self.deposit*(risk/100))*-1
             else:
                 symbol_list.append(symbol)
                 locked = float(format(locked,'.8f'))
                 balance = float(format(balance,'.8f'))
+                avg_buy_price = float(avg_buy_price)
 
-                self.balance_dict.update({symbol:{"balance":balance,"locked":locked}})
+                self.balance_dict.update({symbol:{"balance":balance,"locked":locked,"avg_buy_price":avg_buy_price}})
 
     def get_symbol(self):
 
@@ -176,11 +178,24 @@ class Upbit:
             self.order("BUY", self.symbol, self.deposit)
 
         # SELL
-        if self.symbol in self.balance_dict.keys() and short:
-
-            Message(f"[UPBIT] Close Position")
+        if self.symbol in self.balance_dict.keys():
+            
             balance = self.balance_dict[self.symbol]['balance']
-            self.order("SELL", self.symbol, balance)
+            avg_buy_price = self.balance_dict[self.symbol]['avg_buy_price']
+            krw = _close[0] - avg_buy_price
+            krw_all = round(balance*krw)
+
+            if krw_all < self.risk:
+
+                Message(f"[UPBIT] Stop Loss Position")
+
+                self.order("SELL", self.symbol, balance)
+
+            elif short:
+
+                Message(f"[UPBIT] Close Position")
+
+                self.order("SELL", self.symbol, balance)
 
         threading.Timer(1, self.min_candle_chart).start()
 
