@@ -25,8 +25,7 @@ class Upbit:
         # CUSTOMIZE
         self.ORDER_LOCK = False
 
-        self.min_time = 60
-        self.STOP_LOSS = 0.0
+        self.min_time = 10
         self.symbol = 'KRW-BONK'
 
         # RUN
@@ -46,8 +45,9 @@ class Upbit:
     def get_balance(self):
 
         position = 90 # 10 ~ 20 전체자산 기준 투자할 금액 비율 (%)
-        risk = 1.5 # [0.25-1] [0.5-1.5] 투자금액 기준 손절할 금액 비율 (%)
-
+        SL = 1 # [0.25-1] [0.5-1.5] 투자금액 기준 손절할 금액 비율 (%)
+        TP = 10
+        self.TP = TP
         balance = self.exchange.fetch_balance()
 
         symbol_list = []
@@ -62,7 +62,8 @@ class Upbit:
             if symbol == "KRW-KRW":
                 balance = math.trunc(balance)
                 self.deposit = math.trunc(balance*(position/100))
-                self.risk = math.trunc(self.deposit*(risk/100))*-1
+                # self.SL = math.trunc(self.deposit*(SL/100))*-1 # 보유자산 기준
+                self.SL = SL # 매수한 금액 기준
             else:
                 symbol_list.append(symbol)
                 locked = float(format(locked,'.8f'))
@@ -142,6 +143,7 @@ class Upbit:
         _close = []
         _high = []
         _low = []
+        _open = []
 
         url = f"https://api.upbit.com/v1/candles/minutes/{self.min_time}" # 1, 3, 5, 10, 15, 30, 60, 240
         querystring = {"market": self.symbol,"count": "200", "to": ""}
@@ -152,11 +154,13 @@ class Upbit:
 
             for ii in data:
 
+                open = float(ii['opening_price'])
                 high = float(ii['high_price'])
                 low = float(ii['low_price'])
                 close = float(ii['trade_price'])
                 last_time = str((ii['candle_date_time_kst']))
-
+                
+                _open.append(open)
                 _high.append(high)
                 _low.append(low)
                 _close.append(close)
@@ -164,12 +168,19 @@ class Upbit:
             querystring = {"market": self.symbol,"count": "200", "to": f"{last_time}+09:00"}
 
         ### INDICATOR DATA ###
-        _ema_short = Indicator.ema(_close, 8, None, 6)
-        _ema_long = Indicator.ema(_close, 24, None, 6)
+        _ema1 = Indicator.ema(_close, 8, None, 7)
+        _ema2 = Indicator.ema(_close, 24, None, 7)
+
+        _ema_short = Indicator.ema(_close, 50, None, 7)
+        _ema_long = Indicator.ema(_close, 200, None, 7)
 
         ### Add Condition ###
-        long = _ema_long[2] >= _ema_short[2] and _ema_long[1] < _ema_short[1]
-        short = _ema_long[2] <= _ema_short[2] and _ema_long[1] > _ema_short[1]
+
+        emaDiff1 = _ema1[1] - _ema2[1]
+        emaDiff2 = _ema1[2] - _ema2[2]
+
+        long = _ema_long[1] < _ema_short[1] and emaDiff1 > emaDiff2 and emaDiff1 > 0 and emaDiff2 < 0
+        short = _low[1] < _ema_long[1] and _ema_short[1] > _ema_long[1]
 
         # BUY
         if self.symbol not in self.balance_dict.keys() and long:
@@ -181,19 +192,26 @@ class Upbit:
         if self.symbol in self.balance_dict.keys():
             
             balance = self.balance_dict[self.symbol]['balance']
-            avg_buy_price = self.balance_dict[self.symbol]['avg_buy_price']
-            krw = _close[0] - avg_buy_price
-            krw_all = round(balance*krw)
+            buy_price = self.balance_dict[self.symbol]['avg_buy_price']
+            krw_all = round(balance*buy_price)
+            sl = -round((krw_all * self.SL / 100))
+            tp = round((krw_all * self.TP / 100))
 
-            if krw_all < self.risk:
+            # if krw_all <= sl:
 
-                Message(f"[UPBIT] Stop Loss Position")
+            #     Message(f"[UPBIT] Stop Loss")
+
+            #     self.order("SELL", self.symbol, balance)
+
+            if krw_all >= tp:
+
+                Message(f"[UPBIT] TP & Close Position")
 
                 self.order("SELL", self.symbol, balance)
 
-            elif short:
+            if short:
 
-                Message(f"[UPBIT] Close Position")
+                Message(f"[UPBIT] Condition Close Position")
 
                 self.order("SELL", self.symbol, balance)
 
