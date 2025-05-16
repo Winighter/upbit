@@ -2,202 +2,6 @@ import math
 
 class Indicator():
 
-    ### Don't Use ###
-
-    # Pivot Points High Low
-    def pivots_hl(_high, _low, _close, _leftBars: int = 20, _rightBars: int = 20):
-        '''
-        [tradingview] Pivot Points High Low ~ Om Borda by omborda2002
-
-        tradingview default value : _leftBars = 10, _rightBars = 10
-
-        !!! Warning !!!
-        leftBars 값은 상관없지만 RightBars의 경우 값이 증가할수록
-        매매 타이밍이 매우 느려지므로 매매에 사용하기엔 부적합하다.
-        그래서 0으로 설정하자니 오류 신호만 증가하기 때문에
-        어디까지나 참고용
-        '''
-        pivot_list = []
-
-        for i in range(len(_high)):
-
-            index = len(_high) - i - 1
-
-            if i >= _leftBars:
-
-                low_list = []
-                high_list = []
-                center_low = 0.0
-                center_high = 0.0
-                
-                for ii in range(_leftBars + _rightBars + 1):
-
-                    iindex = index+ii-_leftBars
-
-                    if ii == _rightBars:
-                        center_low = _low[iindex]
-                        center_high = _high[iindex]
-
-                    low_list.append(_low[iindex])
-                    high_list.append(_high[iindex])
-
-                minlow = min(low_list)
-                maxhigh = max(high_list)
-
-                if maxhigh == center_high:
-                    pivot_list.insert(0, [maxhigh, 0])
-
-                elif minlow == center_low:
-                    pivot_list.insert(0, [0, minlow])
-
-                else:
-                    pivot_list.insert(0, [0, 0])
-
-                if index == _leftBars:
-                    break
-
-        for i in range(len(_high)):
-
-            index = len(_high) - i - 1
-
-            if i > _leftBars:
-                iindex = index+_leftBars
-
-                if index <= len(pivot_list) - 1:
-
-                    sp = sum(pivot_list[index])
-
-                    if sp != 0:
-                        # SHort Signal
-                        if (_high[iindex] >= _high[iindex + 1]) and (_high[iindex] >= _high[iindex - 1]) and (_low[iindex] >= _close[iindex - 1]):
-                            print("[High]",iindex,_high[iindex],_low[iindex],_close[iindex],pivot_list[index])
-
-                        # LongSignal
-                        if (_low[iindex] < _low[iindex + 1]) and (_low[iindex] <= _low[iindex - 1]) and (_high[iindex] <= _close[iindex - 1]):
-                            print("[Low]",iindex,_high[iindex],_low[iindex],_close[iindex],pivot_list[index])
-
-    # Market Structure with Inducements & Sweeps [LuxAlgo]
-    def swing_hl(_high, _low, _len):
-        # Pivot 과 같은 원리
-        os = 0
-        cnt = 0
-        os_list = []
-        upper_list = []
-        lower_list = []
-
-        for i in range(len(_high)):
-
-            if i >= _len -1:
-
-                min_list = []
-                max_list = []
-                for ii in range(_len):
-
-                    iindex = i - ii
-                    min_list.append(_low[iindex])
-                    max_list.append(_high[iindex])
-
-                lowest = min(min_list)
-                highest = max(max_list)
-                lower_list.append(lowest)
-                upper_list.append(highest)
-
-        for i in range(len(upper_list)):
-            cnt += 1
-
-            index = len(upper_list) - i - 1
-
-            upper = upper_list[index]
-            lower = lower_list[index]
-
-            if i >= 1:
-
-                highl = _high[index+_len]
-                lowl = _low[index+_len]
-
-                if highl > upper:
-                    os = 0
-
-                elif lowl < lower:
-                    os = 1
-
-                elif os_list != []:
-                    os = os_list[0]
-
-                else:
-                    pass
-
-                os_list.insert(0, os)
-
-            if os == 0 and len(os_list) > 1:
-                if os_list[1] != 0:
-                    top = highl
-            else:
-                top = None
-
-            if os == 1 and len(os_list) > 1:
-                if os_list[1] != 1:
-                    btm = lowl
-            else:
-                btm = None
-
-        return top, btm
-
-    # Nadaraya-Watson Envelope [LuxAlgo]
-    def nwe(_src, _mult:int = 3):
-
-        y2 = 0.
-        nwe_list = []
-
-        length = min(499, len(_src))
-
-        sae = 0.
-
-        for i in range(length):
-
-            sum = 0.
-            sumw = 0.
-
-            for j in range(length):
-
-                w = Indicator.gauss(i -j)
-                sum += _src[j] * w
-                sumw += w
-            
-            y2 = sum / sumw
-            sae += abs(_src[i] - y2)
-            nwe_list.append(y2)
-
-        sae = sae / length * _mult
-
-        result = None
-
-        for i in range(length):
-
-            if _src[i] > nwe_list[i] + sae and _src[i+1] < nwe_list[i] + sae:
-                # print(i, "SHORT", _src[i], _src[i+1])
-                if i == 1:
-                    result = "SHORT"
-
-            if _src[i] < nwe_list[i] - sae and _src[i+1] > nwe_list[i] - sae:
-                # print(i, "LONG", _src[i], _src[i+1])
-                if i == 1:
-                    result = "LONG"
-
-            if i == length - 2:
-                break
-
-        return result
-
-    # Nadaraya-Watson Envelope [LuxAlgo] Config
-    def gauss(_x, _h:int = 8):
-
-        f = math.exp(-(pow(_x, 2)/(_h * _h * 2)))
-        f = round(f, 6)
-        return f
-
-    #########################
-
     ### Developing ###
 
     def linreg(_source, _length, _offset):
@@ -249,9 +53,6 @@ class Indicator():
             if i >= len(_close)-_length+2:
                 break
             print("")
-
-
-
 
     ########################
 
@@ -315,14 +116,14 @@ class Indicator():
                     f = _src[len(_src)-ii-1]
                     first.append(f)
                 fEma = sum(first)/_length
-                fEma = round(fEma, float_len)
+                fEma = round(fEma, 7)
                 sum_list.append(fEma)
                 ema_list.append(fEma)
 
             if i < len(_src)-_length:
 
                 ema = alpha * _src[i] + (1 - alpha) * sum_list[len(sum_list)-1]
-                ema = round(ema, float_len)
+                ema = round(ema, 7)
                 sum_list.append(ema)
                 ema_list.insert(0, ema)
 
@@ -336,38 +137,45 @@ class Indicator():
     # Relative Moving Average
     def rma(_src:list, _length:int, _array:int = 0):
 
-        alpha = round(1 / (_length), 4)
+        alpha = round(1 / (_length), 6)
 
-        if len(_src) == 2:
-            rma = alpha * _src[0] + (1 - alpha) * _src[1]
-            rma = round(rma, 4)
-            return rma
-        else:
-            first_rma = []
-            rma_list = []
+        sums = []
 
-            for i in range(len(_src) + 1):
+        result = []
 
-                if i == _length-1:
+        for i in range(len(_src)):
 
-                    for ii in range(i+1):
-                        ii = (len(_src)-1 - ii)
-                        first_rma.append(_src[ii])
+            index = len(_src) - i - 1
 
-                    first = round(sum(first_rma)/(i+1),4)
-                    rma_list.append(first)
+            if i >= _length - 1:
 
-                if i > _length-1 and i < len(_src):
-                    index = i - _length
-                    rma = (alpha * _src[len(_src)-i -1]) + ((1 - alpha) * (rma_list[index]))
-                    rma = round(rma, 4)
-                    rma_list.append(rma)
+                srcs = []
 
-            result = rma_list
+                for ii in range(_length):
 
-            if _array != None:
-                result = rma_list[_array-1]
-            return result
+                    srcs.append(_src[index-ii])
+
+                if i == _length - 1:
+                    sum = Indicator.sma(srcs, _length)
+                    sum = round(sum, 7)
+                    sums.append(sum)
+                    result.append(sum)
+                else:
+                    a = round(alpha * _src[len(_src)-i-_length], 7)
+                    b = round((1 - alpha) * sums[i-_length], 7)
+                    sum = a + b
+                    sum = round(sum, 7)
+                    sums.append(sum)
+                    result.insert(0, sum)
+        
+            if index == _length - 1:
+                break
+
+        if _array != None:
+
+            result = result[_array]
+
+        return result
 
     # Relative Strength Index
     def rsi(_src:list, _length:int, _array:int = 0):
@@ -431,6 +239,53 @@ class Indicator():
         else:
             return rsi_list
 
+    def macd(_src:list, _array:int = 0):
+
+        _fast_len = 12
+        _slow_len = 26
+        _signal_len = 9
+
+        macd_list = []
+        signal_list = []
+        his_list=[]
+
+        fast_ma = Indicator.ema(_src, _fast_len, None)
+        slow_ma = Indicator.ema(_src, _slow_len, None)
+
+        min_len = min(len(fast_ma), len(slow_ma))
+
+        for i in range(min_len):
+
+            index = min_len - i - 1
+
+            fama = fast_ma[index]
+            slma = slow_ma[index]
+
+            macd = fama - slma
+            macd_list.insert(0, macd)
+
+        _macd = Indicator.ema(macd_list, _signal_len, None)
+
+        ms_len = min(len(_macd),len(macd_list))
+
+        for i in range(ms_len):
+
+            index = ms_len - i - 1
+
+            signal = _macd[index]
+            macd = macd_list[index]
+
+            signal_list.insert(0, signal)
+
+            hist = macd - signal
+            his_list.insert(0, hist)
+
+        result = macd_list, signal_list, his_list
+
+        if _array != None:
+            result = macd_list[_array], signal_list[_array], his_list[_array]
+        return result
+
     # Ribbon
     def ribbon(_src:list, _length:int = 60, _array:int = 0):
 
@@ -459,164 +314,65 @@ class Indicator():
             result = ribbon_list[_array]
 
         return result
-    
-    # Candle
-    def min_max(_src:list, _array:int = 0):
 
-        min = 0.0
-        max = 0.0
-        min_list = []
-        max_list = []
+    def atr(_high, _low, _close, _length, _array:int = 0):
 
-        for i in range(90):
+        tr_list = []
 
-            index = 89 - i
+        for i in range(len(_high)):
 
-            close = _src[index]
+            index = len(_close) - i - 1
 
             if i == 0:
-                min = close
-                max = close
-                min_list.insert(0, min)
-                max_list.insert(0, max)
-                print(max)
+                trueRange = _high[index] - _low[index]
             else:
-                if close < min:
-                    min = close
+                trueRange = max(max(_high[index] - _low[index], abs(_high[index] - _close[index+1])), abs(_low[index] - _close[index+1]))
 
-                if close > max:
-                    max = close
+            trueRange = round(trueRange, 7)
+            tr_list.insert(0, trueRange)
 
-                min_list.insert(0, min)
-                max_list.insert(0, max)
-        # print(max_list)
+        result = Indicator.rma(tr_list, _length, None)
+
         if _array != None:
-            return min_list[_array], max_list[_array]
-        else:
-            return min_list, max_list
-        
-    def asgma(_src:list):
+            result = result[_array]
+        return result
+    
+    def atoi(_open, _high, _low , _close):
 
-        smooth_length = 72
+        ema_length1 = 8
+        ema_length2 = 24
+        emaDiff_list = []
+        _ema1 = Indicator.ema(_close, ema_length1, None)
+        _ema2 = Indicator.ema(_close, ema_length2, None)
 
-        change_list = []
-        pchange_list = []
-        norm_list = []
+        ema_length = min(len(_ema1),len(_ema2))
 
-        for i in range(len(_src)):
+        for i in range(ema_length):
 
-            index = len(_src)-i-1
+            index = ema_length - i - 1
 
-            if i == 0:
-                pass
-            else:
-                c = round(_src[index]-_src[index+1],4)
-                change_list.append(c)
-                
-        for i in range(len(change_list)):
+            ema1 = _ema1[index]
+            ema2 = _ema2[index]
 
-            if i >= smooth_length - 1:
+            emaDiff = ema1 - ema2
 
-                index = len(_src)-i-2
+            emaDiff_list.insert(0, emaDiff)
 
-                sum_list = []
+        m, s, h = Indicator.macd(_close, None)
 
-                for ii in range(smooth_length):
-                    sum_list.append(change_list[i-ii])
+        my_leng = min(len(emaDiff_list),len(_low),len(h))
 
-                p = sum(sum_list)
-                p = round(p, 4)
-                pchange = p / _src[index] * 100
-                pchange = round(pchange, 4)
-                pchange_list.append(pchange)
+        for i in range(my_leng):
 
+            if i > 1:
 
-        weight, length1 = Indicator.alma(pchange_list)
+                index = my_leng - i - 1
 
-        test = 0.0
-        test_list = []
-        sum_test = []
-        rr = []
-        avpchange_list = []
-        for i in range(len(pchange_list)):
-            a = round(pchange_list[i]*weight, 3)
-            test = test + a
-            test = round(test, 2)
+                long = _open[index+1] > _close[index+1] and _open[index] < _close[index]
+                short = _open[index+1] < _close[index+1] and _open[index] > _close[index]
 
-            test_list.append(a)
-            sum_test.append(test)
+                long = long and emaDiff_list[index+1] < 0 and emaDiff_list[index+2] > emaDiff_list[index+1]
+                short = short and emaDiff_list[index+1] > 0 and emaDiff_list[index+2] < emaDiff_list[index+1]
 
-            if i > 0:
-                b = round(sum_test[i]-sum_test[i-1], 2)
-                rr.append(b)
-
-        for i in range(15):
-            '''
-            가장첫봉 = 현재 종가*length
-            이전 norm + 전일종가차이*length
-            '''
-            pass
-            # print(weight)
-
-        for i in range(len(rr)):
-            avpchange = round(rr[i]/weight, 2)
-            avpchange_list.append(avpchange)
-        high_avpchange = max(avpchange_list)
-        low_avpchange = min(avpchange_list)
-        sigma_list = Indicator.stdev(_src)
-        last_weight = 0.0
-        for i in range(14):
-            a = 2 * sigma_list[i]
-            weight = (math.exp(-math.pow(((i - (13)) / a), 2) / 2))
-
-            last_weight = weight
-
-        value = high_avpchange + low_avpchange
-        max_min_list = []
-
-
-
-        print((avpchange_list))
-
-    def alma(_series, _length:int = 2, _offset:float = 0.85, _sigma:float = 7):
-
-        m = round(_offset * (_length - 1), 4)
-        s = round(_length / _sigma, 4)
-
-        last_weight = 0.0
-
-        for i in range(_length):
-            a = round(math.pow(i - m, 2), 4)
-            b = round(math.pow(s, 2), 4)
-            weight = round(math.exp((-1 * a) / (2 * b)),4)
-            last_weight = weight
-
-        return last_weight, _length
-
-    def stdev(_src):
-        _length = 5
-
-        sigma_list = []
-
-        for i in range(len(_src)):
-
-            if i >= _length - 1:
-                s_list = []
-                for ii in range(_length):
-
-                    index = i - ii
-                    index = len(_src) - index - 1
-                    s_list.append(_src[index])
-
-                sigma = numpy.std(s_list)
-                sigma = round(float(sigma), 4)
-                sigma_list.append(sigma)
-        return sigma_list
-
-    def test(_src):
-        pass
-
-
-    def test(_src):
-        pass
-
+                long = long and h[index+2] > h[index+1]
+                short = short and h[index+2] < h[index+1]
