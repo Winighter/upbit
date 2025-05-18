@@ -193,25 +193,24 @@ class Upbit:
             
             balance = self.balance_dict[self.symbol]['balance']
             buy_price = self.balance_dict[self.symbol]['avg_buy_price']
-            krw_all = round(balance*buy_price)
-            sl = -round((krw_all * self.SL / 100))
-            tp = round((krw_all * self.TP / 100))
 
-            # if krw_all <= sl:
+            profit = round(((_close[0]-buy_price)/buy_price)*100,2)
+
+            # if profit <= self.SL:
 
             #     Message(f"[UPBIT] Stop Loss")
 
             #     self.order("SELL", self.symbol, balance)
 
-            if krw_all >= tp:
-
-                Message(f"[UPBIT] TP & Close Position")
-
-                self.order("SELL", self.symbol, balance)
-
             if short:
 
                 Message(f"[UPBIT] Condition Close Position")
+
+                self.order("SELL", self.symbol, balance)
+
+            if profit >= self.TP:
+
+                Message(f"[UPBIT] TP & Close Position")
 
                 self.order("SELL", self.symbol, balance)
 
