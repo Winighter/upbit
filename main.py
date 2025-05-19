@@ -202,7 +202,7 @@ class Upbit:
 
             #     self.order("SELL", self.symbol, balance)
 
-            if buy_price > _close[0]:
+            if _ema_long[0] > _close[0]:
 
                 Message(f"[UPBIT] Condition Close Position")
 
