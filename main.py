@@ -179,8 +179,8 @@ class Upbit:
         emaDiff1 = _ema1[1] - _ema2[1]
         emaDiff2 = _ema1[2] - _ema2[2]
 
-        long = _ema_long[1] < _ema_short[1] and emaDiff1 > emaDiff2 and emaDiff1 > 0 and emaDiff2 < 0
-        short = _low[1] < _ema_long[1] and _ema_short[1] > _ema_long[1]
+        long = _ema_long[1] < _ema_short[1] and emaDiff1 > emaDiff2 and emaDiff1 > 0 and emaDiff2 < 0 and _open[1] < _close[1]
+        long_end = _low[0] < _ema_long[0] and _ema_short[0] > _ema_long[0] and _open[0] > _close[0]
 
         # BUY
         if self.symbol not in self.balance_dict.keys() and long:
@@ -202,9 +202,9 @@ class Upbit:
 
             #     self.order("SELL", self.symbol, balance)
 
-            if _ema_long[0] > _close[0]:
+            if long_end:
 
-                Message(f"[UPBIT] Condition Close Position")
+                Message(f"[UPBIT] SL & Close Position")
 
                 self.order("SELL", self.symbol, balance)
 
