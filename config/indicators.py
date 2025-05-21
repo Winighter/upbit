@@ -1,5 +1,3 @@
-import math
-
 class Indicator():
 
     ### Developing ###
@@ -376,3 +374,53 @@ class Indicator():
 
                 long = long and h[index+2] > h[index+1]
                 short = short and h[index+2] < h[index+1]
+
+    def marubozu(_open, _high, _low, _close, _array:int = 0, _C_Len = 14):
+
+        c_body_list = []
+
+        result = []
+
+        for i in range(len(_open)):
+
+            index = len(_open) - i - 1
+
+            open = _open[index]
+            close = _close[index]
+
+            C_BodyHi = max(open, close)
+            C_BodyLo = min(open, close)
+            C_Body = C_BodyHi - C_BodyLo
+            c_body_list.insert(0, C_Body)
+
+        _C_BodyAvg = Indicator.ema(c_body_list, _C_Len, None)
+
+        min_len = min(len(_C_BodyAvg),len(c_body_list))
+
+        for i in range(min_len):
+
+            index = min_len - i -1
+
+            C_BodyHi = max(_open[index], _close[index])
+            C_BodyLo = min(_open[index], _close[index])
+            C_Body = C_BodyHi - C_BodyLo
+
+            C_LongBody = C_Body > _C_BodyAvg[index]
+            C_UpShadow = _high[index] - C_BodyHi
+            C_DnShadow = C_BodyLo - _low[index]
+
+            C_WhiteBody = _open[index] < _close[index]
+            C_BlackBody = _open[index] > _close[index]
+
+            C_MarubozuShadowPercentWhite = 5.0
+            C_MarubozuShadowPercentBearish = 5.0
+
+            C_MarubozuWhiteBullish = C_WhiteBody and C_LongBody and C_UpShadow <= C_MarubozuShadowPercentWhite/100*C_Body and C_DnShadow <= C_MarubozuShadowPercentWhite/100*C_Body and C_WhiteBody
+            C_MarubozuBlackBearish = C_BlackBody and C_LongBody and C_UpShadow <= C_MarubozuShadowPercentBearish/100*C_Body and C_DnShadow <= C_MarubozuShadowPercentBearish/100*C_Body and C_BlackBody
+
+            result.insert(0, [C_MarubozuWhiteBullish,C_MarubozuBlackBearish])
+
+        if _array != None:
+            result = result[_array]
+
+        return result
