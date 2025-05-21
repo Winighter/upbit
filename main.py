@@ -174,18 +174,6 @@ class Upbit:
         _ema_short = Indicator.ema(_close, 50, None, 7)
         _ema_long = Indicator.ema(_close, 200, None, 7)
 
-        m = Indicator.marubozu(_open, _high, _low, _close, 1)
-        mLong = m[0] != m[1] and m[0] == True
-        mShort = m[0] != m[1] and m[1] == True
-
-        """
-        marubozu Close End conditions
-        Long = _close[3] < _open[3] and _close[2] < _open[2] and _close[1] > _open[1]
-        Short = _close[3] > _open[3] and _close[2] > _open[2] and _close[1] < _open[1]
-        """
-
-        ### Add Condition ###
-
         emaDiff1 = _ema1[1] - _ema2[1]
         emaDiff2 = _ema1[2] - _ema2[2]
 
@@ -206,21 +194,15 @@ class Upbit:
 
             profit = round(((_close[0]-buy_price)/buy_price)*100,2)
 
-            # if profit <= self.SL:
-
-            #     Message(f"[UPBIT] Stop Loss")
-
-            #     self.order("SELL", self.symbol, balance)
-
             if long_end:
 
-                Message(f"[UPBIT] SL & Close Position")
+                Message(f"[UPBIT] SL & Close Position ${profit}")
 
                 self.order("SELL", self.symbol, balance)
 
             if profit >= self.TP:
 
-                Message(f"[UPBIT] TP & Close Position")
+                Message(f"[UPBIT] TP & Close Position ${profit}")
 
                 self.order("SELL", self.symbol, balance)
 
