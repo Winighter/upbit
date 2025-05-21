@@ -44,7 +44,7 @@ class Upbit:
 
     def get_balance(self):
 
-        position = 90 # 10 ~ 20 전체자산 기준 투자할 금액 비율 (%)
+        position = 10 # 10 ~ 20 전체자산 기준 투자할 금액 비율 (%)
         SL = 1 # [0.25-1] [0.5-1.5] 투자금액 기준 손절할 금액 비율 (%)
         TP = 10
         self.TP = TP
@@ -173,6 +173,16 @@ class Upbit:
 
         _ema_short = Indicator.ema(_close, 50, None, 7)
         _ema_long = Indicator.ema(_close, 200, None, 7)
+
+        m = Indicator.marubozu(_open, _high, _low, _close, 1)
+        mLong = m[0] != m[1] and m[0] == True
+        mShort = m[0] != m[1] and m[1] == True
+
+        """
+        marubozu Close End conditions
+        Long = _close[3] < _open[3] and _close[2] < _open[2] and _close[1] > _open[1]
+        Short = _close[3] > _open[3] and _close[2] > _open[2] and _close[1] < _open[1]
+        """
 
         ### Add Condition ###
 
