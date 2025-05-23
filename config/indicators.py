@@ -418,9 +418,69 @@ class Indicator():
             C_MarubozuWhiteBullish = C_WhiteBody and C_LongBody and C_UpShadow <= C_MarubozuShadowPercentWhite/100*C_Body and C_DnShadow <= C_MarubozuShadowPercentWhite/100*C_Body and C_WhiteBody
             C_MarubozuBlackBearish = C_BlackBody and C_LongBody and C_UpShadow <= C_MarubozuShadowPercentBearish/100*C_Body and C_DnShadow <= C_MarubozuShadowPercentBearish/100*C_Body and C_BlackBody
 
-            result.insert(0, [C_MarubozuWhiteBullish,C_MarubozuBlackBearish])
+            result.insert(0, [C_MarubozuBlackBearish,C_MarubozuWhiteBullish])
 
         if _array != None:
             result = result[_array]
 
         return result
+
+    def ut_bot(_high, _low, _close, _array:int = 0):
+
+        _keyValue = 20
+        _atrLength = 5
+
+        x_list = [0.]
+        xx_list = [0.]
+
+        result = []
+
+        _xAtr = Indicator.atr(_high, _low, _close, _atrLength, None)
+
+        _ema = Indicator.ema(_close, 1, None)
+
+        for i in range(len(_xAtr)):
+            index = len(_xAtr) - i - 1
+            xAtr = _xAtr[index]
+            nLoss = round(_keyValue * xAtr, 7)
+
+            if _close[index] > x_list[i] and _close[index+1] > x_list[i]:
+                
+                xATRTrailingStop = max(x_list[i], _close[index] - nLoss)
+
+            elif _close[index] < x_list[i] and _close[index+1] < x_list[i]:
+
+                xATRTrailingStop = min(x_list[i], _close[index] + nLoss)
+
+            elif _close[index] > x_list[i]:
+
+                xATRTrailingStop = _close[index] - nLoss
+            else:
+                xATRTrailingStop = _close[index] + nLoss
+
+            xATRTrailingStop = round(xATRTrailingStop, 7)
+
+            x_list.append(xATRTrailingStop)
+            xx_list.insert(0, xATRTrailingStop)
+        
+        my_len = min(len(xx_list),len(_close),len(_ema))
+
+        for i in range(my_len):
+
+            index = my_len - i - 1
+
+            if i > 0:
+
+                above = xx_list[index+1] >= _ema[index+1] and xx_list[index] < _ema[index]
+                below = xx_list[index+1] <= _ema[index+1] and xx_list[index] > _ema[index]
+
+                buy  = _close[index] > xx_list[index] and above 
+                sell = _close[index] < xx_list[index] and below
+
+                result.append([buy, sell])
+
+        if _array != None:
+            result = result[_array]
+        return result
+
+
