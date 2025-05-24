@@ -4,12 +4,12 @@ from config import *
 
 class Upbit:
 
-    def __init__(self, access:str, secret:str):
+    def __init__(self, _access:str, _secret:str, _symbols:list=[], _minutes:int = 5):
 
         # EXCHAGE CCXT
         self.exchange = ccxt.upbit(config={
-        'apiKey': access,
-        'secret': secret,
+        'apiKey': _access,
+        'secret': _secret,
         'enableRateLimit': True
         })
 
@@ -22,131 +22,114 @@ class Upbit:
         self.buy_order_list = []
         self.sell_order_list = []
 
-        # CUSTOMIZE
-        self.ORDER_LOCK = False
-
-        self.min_time = 10
-        self.symbol = 'KRW-BONK'
-
         # RUN
         print("Start Upbit...")
-        
-        self.get_symbol()
+
         self.get_balance()
-        if self.symbol == "":
-            self.get_low_symbol()
-        self.min_candle_chart()
-        ws_all = WebSocketAll(access, secret, self.symbol)
+
+        symbols = self.inquiry_symbol()
+        if _symbols == []:
+            _symbol = self.create_symbol_portfolio(symbols)
+        else:
+            _symbol = _symbols[0]
+
+        self.min_candle_chart(_symbol, _minutes)
+
+        ws_all = WebSocketAll(_access, _secret, symbols)
         while True:
             data = ws_all.get()
             self.on_ws_private_data(data)
         ws_all.terminate()
 
+    ### BALANCE ###
     def get_balance(self):
 
-        position = 50 # 10 ~ 20 전체자산 기준 투자할 금액 비율 (%)
-        SL = 1 # [0.25-1] [0.5-1.5] 투자금액 기준 손절할 금액 비율 (%)
-        TP = 10
-        self.TP = TP
+        position = 90 # 10 ~ 20 예수금 기준 투자할 금액 비율 (%)
+        self.SL = 4.5 # [0.25-1] [0.5-1.5] 투자금액 기준 손절할 금액 비율 (%)
+        self.TP = 10 # [0.25-1] [0.5-1.5] 투자금액 기준 익절할 금액 비율 (%)
         balance = self.exchange.fetch_balance()
-
-        symbol_list = []
 
         for i in balance["info"]:
 
             locked = float(i["locked"])
             balance = float(i["balance"])
+            avg_buy_price = float(i['avg_buy_price'])
             symbol = f"{i["unit_currency"]}-{i["currency"]}"
-            avg_buy_price = i['avg_buy_price']
 
             if symbol == "KRW-KRW":
                 balance = math.trunc(balance)
                 self.deposit = math.trunc(balance*(position/100))
-                # self.SL = math.trunc(self.deposit*(SL/100))*-1 # 보유자산 기준
-                self.SL = SL # 매수한 금액 기준
             else:
-                symbol_list.append(symbol)
                 locked = float(format(locked,'.8f'))
                 balance = float(format(balance,'.8f'))
-                avg_buy_price = float(avg_buy_price)
-
                 self.balance_dict.update({symbol:{"balance":balance,"locked":locked,"avg_buy_price":avg_buy_price}})
 
-    def get_symbol(self):
-
+    ### SYMBOLS ###
+    def inquiry_symbol(self, _market:str = 'KRW'):
+        '''
+        _market = KRW or BTC or USDT
+        '''
+        _symbols = []
         url = "https://api.upbit.com/v1/market/all"
-        querystring = {'is_details':'False'}
+        params = {'is_details':'False'}
         headers = {"Accept":"application/json"}
-        response = requests.request("GET",url,headers=headers,params=querystring)
+        response = requests.request("GET", url, headers = headers, params = params)
         response = response.text
         result = json.loads(response)
 
-        self.symbols = []
-
         for i in range(len(result)):
+            symbol = str(result[i]['market'])
+            if symbol not in _symbols and symbol.startswith(_market):
+                _symbols.append(symbol)
 
-            data = result[i]
-            symbol = str(data['market'])
+        return _symbols
 
-            if symbol.startswith('KRW') == True:
-                self.symbols.append(symbol)
+    def create_symbol_portfolio(self, _tickers:list[str], _minPrice:float = 0, _maxPrice:float = 1):
 
-    def get_low_symbol(self):
+        rate = 0.0
+        url = "https://api.upbit.com/v1/ticker"
+        symbols = str(_tickers).replace("',", ",").replace("'KRW","KRW").replace("[KRW","KRW").replace("']","")
+        querystring = {'markets':f'{symbols}'}
+        headers = {"Accept":"application/json"}
+        response = requests.request("GET",url,headers=headers,params=querystring)
+        response = json.loads(response.text)
 
-        min_price = 1
-        max_price = 500
+        for i in range(len(response)):
 
-        if self.balance_dict == {}:
+            data = response[i]
+            symbol = data['market']
+            close = data['trade_price']
+            acc_trade_price_24h = data['acc_trade_price_24h']
+            
+            if rate < acc_trade_price_24h and _minPrice < close and close < _maxPrice:
 
-            url = "https://api.upbit.com/v1/ticker"
-            symbols = str(self.symbols).replace("',", ",").replace("'KRW","KRW").replace("[KRW","KRW").replace("']","")
-            querystring = {'markets':f'{symbols}'}
-            headers = {"Accept":"application/json"}
-            response = requests.request("GET",url,headers=headers,params=querystring)
-            response = json.loads(response.text)
-            rate = 0.0
+                last_symbol = symbol
 
-            last_symbol = ''
-            for i in range(len(response)):
+        return last_symbol
 
-                data = response[i]
-                symbol = data['market']
-                close = data['trade_price']
-                change_rate = data['signed_change_rate']*100 # 등락율 (UTC 0시 기준)
-                change_rate = round(change_rate, 2)
+    ### ORDER ###
+    def order_symbol(self, _side:str, _symbol:str, _amount:float, _ORDER_LOCK=False):
 
-                if change_rate < rate and min_price <= close and close <= max_price:
-                    rate = change_rate
-                    last_symbol = symbol
-
-            self.symbol = last_symbol
-        else:
-            self.symbol = list(self.balance_dict.keys())
-            self.symbol = self.symbol[0]
-
-        threading.Timer(1,self.get_low_symbol).start()
-
-    def order(self, _side:str, _symbol:str, _amount:float):
-
-        if self.ORDER_LOCK == False:
-
-            if _side == "BUY":
-                self.buy_order_list.append(_symbol)
-                self.exchange.create_market_buy_order_with_cost(_symbol, _amount)
+        if _ORDER_LOCK == False:
 
             if _side == "SELL":
                 self.sell_order_list.append(_symbol)
                 self.exchange.create_market_sell_order(_symbol, _amount)
 
-    def min_candle_chart(self):
+            if _side == "BUY":
+                self.buy_order_list.append(_symbol)
+                self.exchange.create_market_buy_order_with_cost(_symbol, _amount)
 
-        _close = []
-        _high = []
-        _low = []
+    ### CHART ###
+    def min_candle_chart(self, _symbol, _minutes):
+
         _open = []
+        _low = []
+        _high = []
+        _close = []
 
-        url = f"https://api.upbit.com/v1/candles/minutes/{self.min_time}" # 1, 3, 5, 10, 15, 30, 60, 240
-        querystring = {"market": self.symbol,"count": "200", "to": ""}
+        url = f"https://api.upbit.com/v1/candles/minutes/{_minutes}" # 1, 3, 5, 10, 15, 30, 60, 240
+        querystring = {"market": _symbol,"count": "200", "to": ""}
 
         for i in range(6):
 
@@ -165,49 +148,41 @@ class Upbit:
                 _low.append(low)
                 _close.append(close)
 
-            querystring = {"market": self.symbol,"count": "200", "to": f"{last_time}+09:00"}
+            querystring = {"market": _symbol,"count": "200", "to": f"{last_time}+09:00"}
 
-        ### INDICATOR DATA ###
-        _ema1 = Indicator.ema(_close, 8, None, 7)
-        _ema2 = Indicator.ema(_close, 24, None, 7)
+        ### INDICATOR ###
+        _utbot = Indicators.ut_bot(_high, _low, _close, 1)
 
-        _ema_short = Indicator.ema(_close, 50, None, 7)
-        _ema_long = Indicator.ema(_close, 200, None, 7)
-
-        emaDiff1 = _ema1[1] - _ema2[1]
-        emaDiff2 = _ema1[2] - _ema2[2]
-
-        long = _ema_long[1] < _ema_short[1] and emaDiff1 > emaDiff2 and emaDiff1 > 0 and emaDiff2 < 0 and _open[1] < _close[1]
-        long_end = _low[0] < _ema_long[0] and _ema_short[0] > _ema_long[0] and _open[0] > _close[0]
+        ### CONDITION ###
+        long = _utbot[0]
+        exit_long = _utbot[1]
+        short = False
+        exit_short = False
 
         # BUY
-        if self.symbol not in self.balance_dict.keys() and long:
+        if _symbol not in self.balance_dict.keys() and long:
 
-            Message(f'[UPBIT] Entry Position')
-            self.order("BUY", self.symbol, self.deposit)
+            Message(f'[{_symbol}] Entry Position')
+            self.order_symbol("BUY", _symbol, self.deposit)
 
         # SELL
-        if self.symbol in self.balance_dict.keys():
+        if _symbol in self.balance_dict.keys():
             
-            balance = self.balance_dict[self.symbol]['balance']
-            buy_price = self.balance_dict[self.symbol]['avg_buy_price']
+            balance = self.balance_dict[_symbol]['balance']
+            buy_price = self.balance_dict[_symbol]['avg_buy_price']
+            profit = round(((_close[0] - buy_price) / buy_price) * 100, 2)
 
-            profit = round(((_close[0]-buy_price)/buy_price)*100,2)
+            if profit <= self.SL:
+                Message(f"[{_symbol}] SL & Close Position ${profit}")
+                self.order_symbol("SELL", _symbol, balance)
 
-            if long_end:
+            elif exit_long:
+                Message(f"[{_symbol}] TP & Close Position ${profit}")
+                self.order_symbol("SELL", _symbol, balance)
 
-                Message(f"[UPBIT] SL & Close Position ${profit}")
+        threading.Timer(1, self.min_candle_chart, args=[_symbol,_minutes]).start()
 
-                self.order("SELL", self.symbol, balance)
-
-            if profit >= self.TP:
-
-                Message(f"[UPBIT] TP & Close Position ${profit}")
-
-                self.order("SELL", self.symbol, balance)
-
-        threading.Timer(1, self.min_candle_chart).start()
-
+    ### WebSocket ###
     def on_ws_private_data(self, data):
 
         if data["type"] == "myOrder":
@@ -244,13 +219,13 @@ class Upbit:
                     if symbol in self.balance_dict.keys():
                         if balance == 0 and locked == 0:
                             self.balance_dict.pop(symbol)
+                            # if _symbols == []:
+                            # self.inquiry_symbol()
                 else:
                     self.get_balance()
 
 if __name__ == "__main__":
 
     with open("./upbit.key") as f:
-        lines = f.readlines()
-        access = lines[0].strip()
-        secret = lines[1].strip()
-        upbit = Upbit(access, secret)
+        l = f.readlines()
+        Upbit(l[0].strip(), l[1].strip(),['KRW-BONK'])
