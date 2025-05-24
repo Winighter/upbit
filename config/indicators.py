@@ -1,76 +1,17 @@
-class Indicator():
-
-    ### Developing ###
-
-    def linreg(_source, _length, _offset):
-        linreg = intercept + slope * (_length - 1 - _offset)
-        return linreg
-
-    def sqzmom(_high, _low, _close, _length: int = 20):
-
-        # val = Indicator.linreg(close - avg(avg(highest(high, _length), lowest(low, _length)), sma(close, _length)), _length, 0)
-        '''
-        0이하일때 이전보다 작으면 찐빨, 크면 연한 빨
-        0이상일때 이전보다 크면 찐초, 작으면 연한 초
-        '''
-        
-        cnt = 0
-        _sma = Indicator.sma(_close, _length, None)
-
-        for i in range(len(_close)):
-            
-            index = len(_close)-i-_length+2
-
-            if i >= _length - 1:
-
-                cnt += 1
-                high_list = []
-                low_list = []
-
-                for ii in range(_length):
-                    iindex = len(_close) - i - ii + 1
-
-                    low_list.append(_low[iindex])
-                    high_list.append(_high[iindex])
-
-                lowest = min(low_list)
-                highest = max(high_list)
-    
-                sma = _sma[index]
-
-                avg_lh = (highest+lowest)/2
-                avg_lh = round(avg_lh, 6)
-
-                avg_lhs = (avg_lh + sma)/2
-                avg_lhs = round(avg_lhs, 6)
-
-                avg_clhs = format(_close[index] - avg_lhs, 'f')
-
-                print(avg_clhs)
-
-            if i >= len(_close)-_length+2:
-                break
-            print("")
-
-    ########################
-
-    ### Use ###
+class Indicators():
 
     # Simple Moving Average 
     def sma(_src:list, _length:int, _array:int = 0):
 
-        l = _length
-
         result = []
 
-        if len(_src) < l:
-            return
-        else:
+        if len(_src) >= _length:
+
             for i in range(len(_src)):
 
-                src = _src[i:i+l]
+                src = _src[i:i+_length]
 
-                if len(src) == l:
+                if len(src) == _length:
 
                     sma = round(sum(src)/_length,6)
 
@@ -86,17 +27,15 @@ class Indicator():
     # Exponential Moving Average
     def ema(_src:list, _length:int, _array:int = 0, _price_length:int = 0):
 
-        float_len = _price_length
+        alpha = 2 / (_length + 1)
 
         for i in _src:
 
             i = str(i)
             splt = i.split(".")
             slen = len(splt[1])
-            if float_len <= slen:
-                float_len = slen
-
-        alpha = 2 / (_length + 1)
+            if _price_length <= slen:
+                _price_length = slen
 
         ema_list = []
         sum_list = []
@@ -136,9 +75,7 @@ class Indicator():
     def rma(_src:list, _length:int, _array:int = 0):
 
         alpha = round(1 / (_length), 6)
-
         sums = []
-
         result = []
 
         for i in range(len(_src)):
@@ -154,7 +91,7 @@ class Indicator():
                     srcs.append(_src[index-ii])
 
                 if i == _length - 1:
-                    sum = Indicator.sma(srcs, _length)
+                    sum = Indicators.sma(srcs, _length)
                     sum = round(sum, 7)
                     sums.append(sum)
                     result.append(sum)
@@ -170,9 +107,7 @@ class Indicator():
                 break
 
         if _array != None:
-
             result = result[_array]
-
         return result
 
     # Relative Strength Index
@@ -247,8 +182,8 @@ class Indicator():
         signal_list = []
         his_list=[]
 
-        fast_ma = Indicator.ema(_src, _fast_len, None)
-        slow_ma = Indicator.ema(_src, _slow_len, None)
+        fast_ma = Indicators.ema(_src, _fast_len, None)
+        slow_ma = Indicators.ema(_src, _slow_len, None)
 
         min_len = min(len(fast_ma), len(slow_ma))
 
@@ -262,7 +197,7 @@ class Indicator():
             macd = fama - slma
             macd_list.insert(0, macd)
 
-        _macd = Indicator.ema(macd_list, _signal_len, None)
+        _macd = Indicators.ema(macd_list, _signal_len, None)
 
         ms_len = min(len(_macd),len(macd_list))
 
@@ -287,7 +222,7 @@ class Indicator():
     # Ribbon
     def ribbon(_src:list, _length:int = 60, _array:int = 0):
 
-        ema_src = Indicator.ema(_src, _length, None)
+        ema_src = Indicators.ema(_src, _length, None)
 
         ribbon_list = []
 
@@ -329,7 +264,7 @@ class Indicator():
             trueRange = round(trueRange, 7)
             tr_list.insert(0, trueRange)
 
-        result = Indicator.rma(tr_list, _length, None)
+        result = Indicators.rma(tr_list, _length, None)
 
         if _array != None:
             result = result[_array]
@@ -340,8 +275,8 @@ class Indicator():
         ema_length1 = 8
         ema_length2 = 24
         emaDiff_list = []
-        _ema1 = Indicator.ema(_close, ema_length1, None)
-        _ema2 = Indicator.ema(_close, ema_length2, None)
+        _ema1 = Indicators.ema(_close, ema_length1, None)
+        _ema2 = Indicators.ema(_close, ema_length2, None)
 
         ema_length = min(len(_ema1),len(_ema2))
 
@@ -356,7 +291,7 @@ class Indicator():
 
             emaDiff_list.insert(0, emaDiff)
 
-        m, s, h = Indicator.macd(_close, None)
+        m, s, h = Indicators.macd(_close, None)
 
         my_leng = min(len(emaDiff_list),len(_low),len(h))
 
@@ -393,7 +328,7 @@ class Indicator():
             C_Body = C_BodyHi - C_BodyLo
             c_body_list.insert(0, C_Body)
 
-        _C_BodyAvg = Indicator.ema(c_body_list, _C_Len, None)
+        _C_BodyAvg = Indicators.ema(c_body_list, _C_Len, None)
 
         min_len = min(len(_C_BodyAvg),len(c_body_list))
 
@@ -435,9 +370,9 @@ class Indicator():
 
         result = []
 
-        _xAtr = Indicator.atr(_high, _low, _close, _atrLength, None)
+        _xAtr = Indicators.atr(_high, _low, _close, _atrLength, None)
 
-        _ema = Indicator.ema(_close, 1, None)
+        _ema = Indicators.ema(_close, 1, None)
 
         for i in range(len(_xAtr)):
             index = len(_xAtr) - i - 1
@@ -477,7 +412,7 @@ class Indicator():
                 buy  = _close[index] > xx_list[index] and above 
                 sell = _close[index] < xx_list[index] and below
 
-                result.append([buy, sell])
+                result.insert(0, [buy, sell, _close[index]])
 
         if _array != None:
             result = result[_array]
