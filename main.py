@@ -228,4 +228,6 @@ if __name__ == "__main__":
 
     with open("./upbit.key") as f:
         l = f.readlines()
-        Upbit(l[0].strip(), l[1].strip(),['KRW-BONK'])
+        access = l[0].strip()
+        secret = l[1].strip()
+        Upbit(access, secret, ['KRW-BONK'])
