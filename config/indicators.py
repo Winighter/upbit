@@ -419,3 +419,91 @@ class Indicators():
         return result
 
 
+    def rsi_scalp(_open, _high, _low, _close, _array:int = 0):
+
+        rsiL = 7
+        rsiOBI = 85
+        rsiOSI = 15
+        fibLevel = 0.333
+        rsiOB_list = []
+
+        rsiOS_list = []
+        result = []
+        _myRsi = Indicators.rsi2(_close, rsiL, None)
+
+        my_len = min(len(_myRsi),len(_low))
+
+        for i in range(my_len):
+
+            index = my_len - i - 1
+
+            rsiOB = _myRsi[index] >= rsiOBI
+            rsiOB_list.insert(0, rsiOB)
+            rsiOS = _myRsi[index] <= rsiOSI
+            rsiOS_list.insert(0, rsiOS)
+
+        myy_len = min(len(rsiOB_list),len(_low))
+
+        for i in range(myy_len):
+
+            index = myy_len - i -1
+
+            if i > 0:
+
+                bullE = _close[index] > _open[index + 1] and _close[index+1] < _open[index+1]
+
+                bearE = _close[index] < _open[index + 1] and _close[index+1] > _open[index+1]
+
+                TradeSignal = ((rsiOS_list[index] or rsiOS_list[index+1]) and bullE) or ((rsiOB_list[index] or rsiOB_list[index+1]) and bearE)
+
+                signal = [False, False]
+
+                if TradeSignal:
+                    signal = [bullE, bearE]
+
+                result.insert(0, signal)
+
+        if _array != None:
+            result = result[_array]
+        return result
+
+
+    def rsi2(_src, _length, _array:int = 0):
+
+        u_list = []
+        d_list = []
+        result = []
+        for i in range(len(_src)):
+
+            index = len(_src) - i - 1
+
+            if i > 0:
+
+                u = max(_src[index] - _src[index+1], 0)
+                d = max(_src[index+1] - _src[index], 0)
+                # u = round(u, 7)
+                # d = round(d, 7)
+                u_list.insert(0, u)
+                d_list.insert(0, d)
+
+        _r = Indicators.rma(u_list, _length, None)
+        _d = Indicators.rma(d_list, _length, None)
+
+        for i in range(len(_r)):
+
+            index = len(_r) - i -1
+            r = _r[index]
+            d = _d[index]
+            if (r ==0) or (d== 0):
+                rs = 0
+            else:
+                rs = r / d
+                rs = round(rs, 7)
+
+            res = 100 - 100 / (1 + rs)
+            res = round(res,2)
+            result.insert(0, res)
+
+        if _array != None:
+            result = result[_array]
+        return result
